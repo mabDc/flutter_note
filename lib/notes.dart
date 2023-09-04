@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:math' as math;
 
 const notesBoxKey = "notes";
 const notesTypeId = 1;
@@ -13,6 +14,16 @@ class _StyleItem {
 }
 
 final styles = [
+  const _StyleItem(Color(0xffffffff), Color(0xff101010), "assets/bg/001.jpg"),
+  const _StyleItem(Color(0xffffffff), Color(0xff101010), "assets/bg/002.jpg"),
+  const _StyleItem(Color(0xffffffff), Color(0xff000000), "assets/bg/003.png"),
+  const _StyleItem(Color(0xffffffff), Color(0xff102030), "assets/bg/004.jpg"),
+  const _StyleItem(Color(0xff101010), Color(0xffc5c4c9), "assets/bg/005.jpg"),
+  const _StyleItem(Color(0xfffefefe), Color(0xff353535), "assets/bg/006.jpg"),
+  const _StyleItem(Color(0xff101010), Color(0xffc5c4c9), "assets/bg/007.jpg"),
+  const _StyleItem(Color(0xfffefefe), Color(0xff010203), "assets/bg/008.png"),
+
+  ///
   const _StyleItem(Color(0xFFFFFFCC), Color(0xFF303133), ''), //page_turn
   const _StyleItem(Color(0xfff1f1f1), Color(0xff373534), ''), //白底
   const _StyleItem(Color(0xfff5ede2), Color(0xff373328), ''), //浅黄
@@ -21,6 +32,7 @@ final styles = [
   const _StyleItem(Color(0xff999c99), Color(0xff353535), ''), //浅灰
   const _StyleItem(Color(0xff33383d), Color(0xffc5c4c9), ''), //黑
   const _StyleItem(Color(0xff010203), Color(0xFfffffff), ''), //纯黑
+
   ///
   const _StyleItem(Color(0xFF303133), Color(0xFFFFFFCC), ''), //page_turn
   const _StyleItem(Color(0xff373534), Color(0xfff1f1f1), ''), //白底
@@ -30,19 +42,28 @@ final styles = [
   const _StyleItem(Color(0xff353535), Color(0xff999c99), ''), //浅灰
   const _StyleItem(Color(0xffc5c4c9), Color(0xff33383d), ''), //黑
   const _StyleItem(Color(0xFfffffff), Color(0xff010203), ''), //纯黑
-  ///
-  const _StyleItem(Color(0xffffffff), Color(0xff101010), "assets/bg/001.jpg"),
-  const _StyleItem(Color(0xffffffff), Color(0xff101010), "assets/bg/002.jpg"),
-  const _StyleItem(Color(0xffffffff), Color(0xff000000), "assets/bg/003.png"),
-  const _StyleItem(Color(0xffffffff), Color(0xff102030), "assets/bg/004.jpg"),
-  const _StyleItem(Color(0xff101010), Color(0xffc5c4c9), "assets/bg/005.jpg"),
-  const _StyleItem(Color(0xfffefefe), Color(0xff353535), "assets/bg/006.jpg"),
-  const _StyleItem(Color(0xff101010), Color(0xffc5c4c9), "assets/bg/007.jpg"),
-  const _StyleItem(Color(0xfffefefe), Color(0xff010203), "assets/bg/008.png"),
 ];
 
 void deleteNote(int id) {
   notesBox.delete(id);
+}
+
+Note defaultNewNote({
+  String title = "",
+  String content = "",
+}) {
+  final style = styles[math.min(math.Random().nextInt(8), styles.length)];
+  return Note(
+    false,
+    DateTime.now().microsecondsSinceEpoch,
+    DateTime.now().microsecondsSinceEpoch,
+    style.foreColor.value, // Colors.black.value,
+    style.backColor.value, // Colors.white.value,
+    style.background, // "",
+    "",
+    title,
+    content,
+  );
 }
 
 class Note {
@@ -67,23 +88,6 @@ class Note {
     this.title,
     this.content,
   );
-
-  static Note defaultNewNote({
-    String title = "",
-    String content = "",
-  }) {
-    return Note(
-      false,
-      DateTime.now().microsecondsSinceEpoch,
-      DateTime.now().microsecondsSinceEpoch,
-      Colors.black.value,
-      Colors.white.value,
-      "",
-      "",
-      title,
-      content,
-    );
-  }
 }
 
 class NoteAdapter extends TypeAdapter<Note> {
