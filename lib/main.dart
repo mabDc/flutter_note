@@ -117,17 +117,12 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          toNotePage(defaultNewNote());
+          toNotePage(context, defaultNewNote());
         },
         tooltip: '添加筆記',
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  void toNotePage(Note note) {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => EditNotePage(note: note)));
   }
 
   SliverAppBar buildTopBar() {
@@ -139,29 +134,19 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.settings_outlined),
         ),
       ],
+      title: Text("记事本"),
+      centerTitle: true,
       floating: true,
       snap: true,
       pinned: true,
       expandedHeight: 100.0,
-      centerTitle: true,
       flexibleSpace: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           var top = constraints.biggest.height;
           // print("22334");
           // print(top);
-          if (top < 62)
-            return FlexibleSpaceBar(
-              title: Text("记事本"),
-              centerTitle: true,
-            );
+          if (top < 62) return Container();
           return FlexibleSpaceBar(
-            background: Container(
-              margin: EdgeInsets.only(top: 20, left: 30),
-              child: Text(
-                "记事本",
-                style: TextStyle(fontSize: 24),
-              ),
-            ),
             title: Container(
               height: top - 62,
               child: TextButton.icon(
@@ -198,65 +183,105 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
 
-  buildNotes(List<Note> v) {
-    return WaterfallFlow.builder(
-        itemCount: v.length,
-        itemBuilder: (context, index) {
+void toNotePage(BuildContext context, Note note) {
+  Navigator.push(
+      context, MaterialPageRoute(builder: (context) => EditNotePage(note: note)));
+}
+
+Widget buildNotes(List<Note> v) {
+  return SliverPadding(
+    padding: EdgeInsets.all(16),
+    sliver: SliverWaterfallFlow(
+      gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        // collectGarbage: (List<int> garbages) {
+        //   print('collect garbage : $garbages');
+        // },
+        // viewportBuilder: (int firstIndex, int lastIndex) {
+        //   print('viewport : [$firstIndex,$lastIndex]');
+        // },
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
           final note = v[index];
-          return Card(
-            child: ListTile(
-              title: Text(
-                note.title.isNotEmpty ? "${note.title}\n\n${note.content}" : note.content,
-                maxLines: 5,
+          final foreColor = Color(note.foreColor);
+          final time = Text(
+            dateFormat.format(DateTime.fromMicrosecondsSinceEpoch(note.create)),
+            style: TextStyle(color: foreColor.withAlpha(140)),
+          );
+
+          return Container(
+            decoration:
+                buildDecoration(note).copyWith(borderRadius: BorderRadius.circular(12)),
+            child: Card(
+              color: Colors.transparent,
+              child: Container(
+                decoration: buildDecoration(note)
+                    .copyWith(borderRadius: BorderRadius.circular(12)),
+                padding: EdgeInsets.all(4),
+                child: InkWell(
+                  onTap: () => toNotePage(context, note),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (note.title.isNotEmpty)
+                        Text(
+                          note.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: foreColor,
+                            decoration: TextDecoration.underline,
+                            decorationColor: foreColor,
+                            decorationThickness: 0.8,
+                          ),
+                        ),
+                      Text(
+                        note.content,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: note.title.isEmpty ? 16 : null, color: foreColor),
+                        maxLines: 6,
+                      ),
+                      Row(children: [Spacer(), time])
+                    ],
+                  ),
+                ),
               ),
-              subtitle: Text(
-                  dateFormat.format(DateTime.fromMicrosecondsSinceEpoch(note.create))),
-              onTap: () => toNotePage(note),
             ),
           );
         },
-        //cacheExtent: 0.0,
-        padding: EdgeInsets.all(5.0),
-        gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 5.0,
-          mainAxisSpacing: 5.0,
-
-          /// follow max child trailing layout offset and layout with full cross axis extend
-          /// last child as loadmore item/no more item in [GridView] and [WaterfallFlow]
-          /// with full cross axis extend
-          //  LastChildLayoutType.fullCrossAxisExtend,
-
-          /// as foot at trailing and layout with full cross axis extend
-          /// show no more item at trailing when children are not full of viewport
-          /// if children is full of viewport, it's the same as fullCrossAxisExtend
-          //  LastChildLayoutType.foot,
-          // lastChildLayoutTypeBuilder: (index) =>
-          // index == _list.length ? LastChildLayoutType.foot : LastChildLayoutType.none,
-        ));
-    // return SliverGrid.builder(
-    //   itemCount: v.length,
-    //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-    //   itemBuilder: (context, index) {
-    //     final note = v[index];
-    //     return Card(
-    //       child: ListTile(
-    //         title: Text(
-    //           note.title.isNotEmpty ? "${note.title}\n\n${note.content}" : note.content,
-    //           maxLines: 5,
-    //         ),
-    //         subtitle:
-    //             Text(dateFormat.format(DateTime.fromMicrosecondsSinceEpoch(note.create))),
-    //         onTap: () => toNotePage(note),
-    //       ),
-    //     );
-    //   },
-    // );
-  }
+        childCount: v.length,
+      ),
+    ),
+  );
 }
 
 final isAndroid = Platform.isAndroid;
+BoxDecoration buildDecoration(Note note) {
+  return BoxDecoration(
+    color: Color(note.backColor),
+    // borderRadius: BorderRadius.circular(20),
+    image: note.background.isEmpty
+        ? null
+        : DecorationImage(image: AssetImage(note.background), fit: BoxFit.cover),
+  );
+}
+
+void buildShowMenu<T>(BuildContext context, List<PopupMenuEntry<T>> items) {
+  final s = MediaQuery.of(context).size;
+  showMenu<T>(
+    context: context,
+    constraints: BoxConstraints(minWidth: s.width - 100),
+    position: RelativeRect.fromLTRB(50, s.height, 50, 10),
+    items: items,
+  );
+}
 
 class EditNotePage extends StatefulWidget {
   final Note note;
@@ -273,6 +298,7 @@ class _EditNotePageState extends State<EditNotePage> {
   final editContentHistory = UndoHistoryController();
   final focusNode = FocusNode();
   late final dataString;
+  late final foreColor = Color(widget.note.foreColor);
   bool hasSave = true;
   @override
   void initState() {
@@ -327,182 +353,207 @@ class _EditNotePageState extends State<EditNotePage> {
   @override
   Widget build(BuildContext context) {
     final wordLength = _wordLength;
-    return Container(
-      decoration: BoxDecoration(
-          color: Color(widget.note.backColor),
-          image: widget.note.background.isEmpty
-              ? null
-              : DecorationImage(
-                  image: AssetImage(widget.note.background), fit: BoxFit.cover)),
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          toolbarOpacity: 1.0,
-          actions: [
-            if (!isAndroid || focusNode.hasFocus)
-              IconButton(
-                icon: Icon(Icons.undo_rounded),
-                tooltip: "撤销",
-                onPressed:
-                    editContentHistory.value.canUndo ? editContentHistory.undo : null,
-              ),
-            if (!isAndroid || focusNode.hasFocus)
-              IconButton(
-                icon: Icon(Icons.redo_rounded),
-                tooltip: "重做",
-                onPressed:
-                    editContentHistory.value.canRedo ? editContentHistory.redo : null,
-              ),
-            IconButton(
-              icon: Icon(Icons.save),
-              tooltip: hasSave
-                  ? "已保存"
-                  : wordLength == 0
-                      ? "無内容"
-                      : "保存",
-              onPressed: hasSave
-                  ? null
-                  : wordLength == 0
-                      ? null
-                      : save,
-            ),
-            IconButton(
-              icon: Icon(Icons.widgets_outlined),
-              tooltip: "皮肤",
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Icon(Icons.share_rounded),
-              tooltip: "分享",
+    return WillPopScope(
+      onWillPop: () async {
+        if (focusNode.hasFocus) {
+          focusNode.unfocus();
+          save();
+          return false;
+        }
+        return true;
+      },
+      child: Container(
+        decoration: buildDecoration(widget.note),
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back),
               onPressed: () {
-                showDialog(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (context) {
-                      final w = MediaQuery.of(context).size.width;
-                      return Stack(
-                        children: <Widget>[
-                          Positioned(
-                            bottom: 10,
-                            left: w * 0.05,
-                            child: Container(
-                              width: w * 0.9,
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 10, bottom: 10),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      InkWell(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Text("以文本形式分享" + ' ' * 1000),
-                                        ),
-                                        onTap: () {
-                                          Share.share(_content);
-                                        },
-                                      ),
-                                      InkWell(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Text("以圖片形式分享" + ' ' * 1000),
-                                        ),
-                                        onTap: () {},
-                                      ),
-                                      InkWell(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Text("拷貝文本到剪貼板" + ' ' * 1000),
-                                        ),
-                                        onTap: () async {
-                                          await Clipboard.setData(
-                                              ClipboardData(text: _content));
-                                          // Utils.toast("已复制图片地址");
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: TextButton(
-                                            onPressed: () {},
-                                            style: ButtonStyle(
-                                                backgroundColor: MaterialStatePropertyAll(
-                                                    Colors.black12)),
-                                            child: Center(child: Text("取消"))),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    });
+                if (focusNode.hasFocus) {
+                  focusNode.unfocus();
+                  save();
+                } else {
+                  Navigator.of(context).pop();
+                }
               },
             ),
-          ],
-        ),
-        backgroundColor: Colors.transparent,
-        body: CustomScrollView(
-          physics: physics,
-          slivers: <Widget>[
-            SliverAppBar(
-              forceMaterialTransparency: true,
-              pinned: true,
-              leading: Container(),
-              leadingWidth: 0,
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: TextButton.icon(
-                    style: ButtonStyle(
-                        backgroundColor: MaterialStatePropertyAll(Colors.black12)),
-                    onPressed: () {},
-                    icon: Icon(Icons.folder_copy_outlined),
-                    label: Text('未分類'),
+            backgroundColor: Colors.transparent,
+            toolbarOpacity: 1.0,
+            actions: [
+              if (!isAndroid || focusNode.hasFocus)
+                IconButton(
+                  icon: Icon(Icons.undo_rounded),
+                  tooltip: "撤销",
+                  onPressed:
+                      editContentHistory.value.canUndo ? editContentHistory.undo : null,
+                ),
+              if (!isAndroid || focusNode.hasFocus)
+                IconButton(
+                  icon: Icon(Icons.redo_rounded),
+                  tooltip: "重做",
+                  onPressed:
+                      editContentHistory.value.canRedo ? editContentHistory.redo : null,
+                ),
+              IconButton(
+                icon: Icon(Icons.save),
+                tooltip: hasSave
+                    ? "已保存"
+                    : wordLength == 0
+                        ? "無内容"
+                        : "保存",
+                onPressed: hasSave
+                    ? null
+                    : wordLength == 0
+                        ? null
+                        : save,
+              ),
+              IconButton(
+                icon: Icon(Icons.widgets_outlined),
+                tooltip: "皮肤",
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: Icon(Icons.share_rounded),
+                tooltip: "分享",
+                onPressed: () {
+                  final s = MediaQuery.of(context).size;
+                  showMenu(
+                    context: context,
+                    shape:
+                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    constraints: BoxConstraints(minWidth: s.width - 80),
+                    position: RelativeRect.fromLTRB(40, s.height - 120, 40, 0),
+                    items: [
+                      PopupMenuItem(
+                        child: Text("以文本形式分享"),
+                        onTap: () {
+                          if (_content.isNotEmpty) Share.share(_content);
+                        },
+                      ),
+                      PopupMenuItem(
+                        child: Text("以圖片形式分享"),
+                      ),
+                      PopupMenuItem(
+                        child: Text("拷貝文本到剪貼板"),
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: _content));
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+          backgroundColor: Colors.transparent,
+          body: CustomScrollView(
+            physics: physics,
+            slivers: <Widget>[
+              SliverAppBar(
+                forceMaterialTransparency: true,
+                pinned: true,
+                leading: Container(),
+                leadingWidth: 0,
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: TextButton.icon(
+                      style: ButtonStyle(
+                          backgroundColor: MaterialStatePropertyAll(Colors.black12)),
+                      onPressed: () {
+                        final s = MediaQuery.of(context).size;
+                        var n = "";
+                        showMenu(
+                          context: context,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          constraints: BoxConstraints(minWidth: s.width - 80),
+                          position: RelativeRect.fromLTRB(40, s.height - 120, 40, 20),
+                          items: [
+                            PopupMenuItem(
+                              child: Text("未分类"),
+                              onTap: () => widget.note.folder = "",
+                            ),
+                            PopupMenuItem(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      onChanged: (value) => n = value,
+                                      onSubmitted: (value) {
+                                        widget.note.folder = value;
+                                        Navigator.of(context).pop();
+                                      },
+                                      decoration: InputDecoration(hintText: "添加新分类"),
+                                    ),
+                                  ),
+                                  TextButton(
+                                      onPressed: () {
+                                        widget.note.folder = n;
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Text("确定")),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ).then((value) {
+                          setState(() {});
+                        });
+                      },
+                      icon: Icon(Icons.folder_copy_outlined),
+                      label:
+                          Text(widget.note.folder.isEmpty ? '未分類' : widget.note.folder),
+                    ),
+                  )
+                ],
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: editTitle,
+                    textAlign: TextAlign.justify,
+                    style: TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.bold, color: foreColor),
+                    decoration: InputDecoration(
+                        hintText: "標題",
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(color: foreColor.withAlpha(130))),
+                    maxLines: null,
                   ),
-                )
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: editTitle,
-                  textAlign: TextAlign.justify,
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(hintText: "標題", border: InputBorder.none),
-                  maxLines: null,
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  "$dataString   |   $wordLength 字",
-                  style: TextStyle(color: Colors.grey),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    "$dataString   |   $wordLength 字",
+                    style: TextStyle(color: foreColor.withAlpha(150)),
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: editContent,
-                  undoController: editContentHistory,
-                  focusNode: focusNode,
-                  // focusNode: FocusNode,
-                  textAlign: TextAlign.justify,
-                  autofocus: wordLength == 0,
-                  decoration: InputDecoration(hintText: "開始書寫", border: InputBorder.none),
-                  maxLines: null,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: editContent,
+                    undoController: editContentHistory,
+                    focusNode: focusNode,
+                    // focusNode: FocusNode,
+                    textAlign: TextAlign.justify,
+                    style: TextStyle(color: foreColor),
+                    autofocus: wordLength == 0,
+                    decoration: InputDecoration(
+                        hintText: "開始書寫",
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(color: foreColor.withAlpha(130))),
+                    maxLines: null,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
